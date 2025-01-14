@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Sphere</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Battle Sphere</h1>
+        <button id="joinQueueBtn">Join Queue</button>
+
+        <div id="gameArea" class="game-area" style="display: none;">
+            <p id="gameStatus">Waiting for opponent...</p>
+            <div id="gameEvents"></div>
+        </div>
+    </div>
+
+    <script src="../JS/game.js"></script>
+    <script>
+        // Establish WebSocket connection
+        const socket = io();
+
+        const joinQueueBtn = document.getElementById('joinQueueBtn');
+        const gameArea = document.getElementById('gameArea');
+        const gameStatus = document.getElementById('gameStatus');
+
+        // Join the game queue when the button is clicked
+        joinQueueBtn.addEventListener('click', () => {
+            const username = prompt("Enter your username:");
+            if (username) {
+                socket.emit('join-queue', { username });
+                joinQueueBtn.disabled = true; // Disable the button while waiting
+                gameStatus.textContent = 'Waiting for opponent...';
+            }
+        });
+
+        // Listen for match-found event from server
+        socket.on('match-found', (data) => {
+            gameStatus.textContent = `Match found! Opponent: ${data.opponent.username}`;
+            gameArea.style.display = 'block'; // Show game area
+        });
+
+        // Handle game updates
+        socket.on('game-update', (data) => {
+            const gameEvents = document.getElementById('gameEvents');
+            gameEvents.innerHTML += `<p>${data.event}</p>`; // Update game events log
+        });
+
+        // Handle game over
+        socket.on('game-over', (data) => {
+            gameStatus.textContent = `Game Over! ${data.winner} wins!`;
+            joinQueueBtn.disabled = false; // Re-enable button for new match
+        });
+
+        // Handle opponent disconnecting
+        socket.on('opponent-disconnected', () => {
+            gameStatus.textContent = 'Your opponent disconnected. You win!';
+        });
+    </script>
+</body>
+</html>
